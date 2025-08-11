@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { expandTask } from '@/lib/ai'
 import { supabase } from '@/lib/supabase'
 
+// Force dynamic rendering for API routes
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
