@@ -1,0 +1,20 @@
+{
+  "functions": {
+    "app/api/cron/daily-assessment/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/cron/dependency-check/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/daily-assessment",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/dependency-check",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
