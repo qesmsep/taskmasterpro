@@ -15,7 +15,8 @@ import {
   X,
   Plus,
   Bell,
-  User
+  User,
+  Tag
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
