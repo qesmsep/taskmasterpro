@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { expandTask } from '@/lib/ai'
+import { generateContextQuestions } from '@/lib/ai'
 import { supabase } from '@/lib/supabase'
 
-// Force dynamic rendering for API routes
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { taskTitle, taskDescription, existingSubtasks } = body
+    const { taskData } = body
+
+    if (!taskData.title) {
+      return NextResponse.json({ error: 'Task title is required' }, { status: 400 })
+    }
 
     // Get user from auth
     const authHeader = request.headers.get('authorization')
@@ -20,21 +23,21 @@ export async function POST(request: NextRequest) {
     if (!supabase) {
       return NextResponse.json({ error: 'Supabase client not initialized' }, { status: 500 })
     }
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!taskTitle) {
-      return NextResponse.json({ error: 'Task title is required' }, { status: 400 })
-    }
-
-    const result = await expandTask(taskTitle, taskDescription, existingSubtasks)
-
-    return NextResponse.json(result)
-  } catch (error) {
-    console.error('Error expanding task:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const questions = await generateContextQuestions(taskData)
+    
+    return NextResponse.json({ questions })
+  } catch (error: any) {
+    console.error('Error generating context questions:', error)
+    return NextResponse.json({ 
+      error: 'Failed to generate context questions',
+      details: error.message 
+    }, { status: 500 })
   }
 }

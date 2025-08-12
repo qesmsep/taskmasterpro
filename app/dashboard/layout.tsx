@@ -59,7 +59,8 @@ export default function DashboardLayout({
 
   const navigation = [
     { name: 'Today', href: '/dashboard', icon: Home },
-    { name: 'Categories', href: '/dashboard/categories', icon: FolderOpen },
+    { name: 'Projects', href: '/dashboard/projects', icon: FolderOpen },
+    { name: 'Categories', href: '/dashboard/categories', icon: Tag },
     { name: 'Archive', href: '/dashboard/archive', icon: Archive },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ]

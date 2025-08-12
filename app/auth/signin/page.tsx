@@ -13,27 +13,68 @@ export default function SignInPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showResend, setShowResend] = useState(false)
   const router = useRouter()
+
+  // Check if Supabase is available
+  if (!supabase) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-apple-gray-50 to-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center">
+          <h1 className="text-2xl font-bold text-apple-gray-900 mb-4">Configuration Error</h1>
+          <p className="text-apple-gray-600">
+            Supabase configuration is missing. Please check your environment variables.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
+    if (!supabase) {
+      setError('Supabase client not initialized')
+      setLoading(false)
+      return
+    }
+
     try {
+      console.log('Attempting sign in for:', email)
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (error) throw error
+      if (error) {
+        console.error('Sign in error:', error)
+        throw error
+      }
 
       if (data.user) {
+        console.log('Sign in successful for:', data.user.email)
         router.push('/dashboard')
       }
     } catch (error: any) {
-      setError(error.message)
+      console.error('Sign in failed:', error)
+      
+      // Provide more user-friendly error messages
+      let errorMessage = error.message
+      if (error.message.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.'
+      } else if (error.message.includes('Email not confirmed')) {
+        errorMessage = 'Please check your email and confirm your account before signing in.'
+        setShowResend(true)
+      } else if (error.message.includes('Too many requests')) {
+        errorMessage = 'Too many sign-in attempts. Please wait a moment and try again.'
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

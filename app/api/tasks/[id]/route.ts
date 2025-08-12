@@ -67,12 +67,21 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Resolve DB user by email
+    const dbUser = await prisma.user.findUnique({
+      where: { email: user.email as string },
+    })
+
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+    }
+
     // Check if task belongs to user
     const existingTask = await prisma.task.findUnique({
       where: { id: params.id },
     })
 
-    if (!existingTask || existingTask.userId !== user.id) {
+    if (!existingTask || existingTask.userId !== dbUser.id) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 
@@ -150,12 +159,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Resolve DB user by email
+    const dbUser = await prisma.user.findUnique({
+      where: { email: user.email as string },
+    })
+
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+    }
+
     // Check if task belongs to user
     const existingTask = await prisma.task.findUnique({
       where: { id: params.id },
     })
 
-    if (!existingTask || existingTask.userId !== user.id) {
+    if (!existingTask || existingTask.userId !== dbUser.id) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 

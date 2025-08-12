@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { expandTask } from '@/lib/ai'
+import { reviewTaskCreation } from '@/lib/ai'
 import { supabase } from '@/lib/supabase'
 
-// Force dynamic rendering for API routes
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { taskTitle, taskDescription, existingSubtasks } = body
+    const { taskData, calendarEvents } = body
+
+    // Validate required fields
+    if (!taskData?.title) {
+      return NextResponse.json({ error: 'Task title is required' }, { status: 400 })
+    }
 
     // Get user from auth
     const authHeader = request.headers.get('authorization')
@@ -26,15 +30,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!taskTitle) {
-      return NextResponse.json({ error: 'Task title is required' }, { status: 400 })
-    }
+    // Generate AI review
+    const review = await reviewTaskCreation(taskData, calendarEvents)
 
-    const result = await expandTask(taskTitle, taskDescription, existingSubtasks)
-
-    return NextResponse.json(result)
+    return NextResponse.json(review)
   } catch (error) {
-    console.error('Error expanding task:', error)
+    console.error('Error in task review:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

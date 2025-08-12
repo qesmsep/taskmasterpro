@@ -11,12 +11,12 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   email     String   @unique
   name      String?
   avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   tasks         Task[]
@@ -24,46 +24,103 @@ model User {
   attachments   Attachment[]
   communications Communication[]
   notifications Notification[]
+  calendarIntegrations CalendarIntegration[]
 
   @@map("users")
 }
 
 model Category {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid())
   name        String
   color       String   @default("#007AFF")
   description String?
-  userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  userId      String @map("user_id")
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tasks Task[]
+  schedules CategorySchedule[]
 
   @@map("categories")
 }
 
+model CategorySchedule {
+  id         String   @id @default(uuid())
+  categoryId String   @map("category_id")
+  dayOfWeek  Int      @map("day_of_week") // 0-6 (Sunday-Saturday)
+  startHour  Int      @map("start_hour") // 0-23
+  endHour    Int      @map("end_hour") // 0-23
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, dayOfWeek])
+  @@map("category_schedules")
+}
+
+model TaskCreationStep {
+  id          String   @id @default(uuid())
+  taskId      String   @map("task_id")
+  stepNumber  Int      @map("step_number")
+  stepType    String   // 'basic_info', 'success_criteria', 'details', 'ai_review'
+  data        Json     // Store step-specific data
+  isCompleted Boolean  @default(false) @map("is_completed")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_creation_steps")
+}
+
+model CalendarIntegration {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  provider     String   // 'google', 'outlook'
+  accessToken  String   @map("access_token")
+  refreshToken String?  @map("refresh_token")
+  expiresAt    DateTime? @map("expires_at")
+  calendarId   String?  @map("calendar_id")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("calendar_integrations")
+}
+
 model Task {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid())
   title       String
   description String?
   status      TaskStatus @default(TODO)
   priority    Priority   @default(MEDIUM)
-  dueDate     DateTime?
-  estimatedTime Int? // in minutes
-  actualTime   Int? // in minutes
-  categoryId  String?
-  userId      String
-  parentId    String?
-  responsibleParty String?
+  dueDate     DateTime? @map("due_date")
+  estimatedTime Int? @map("estimated_time") // in minutes
+  actualTime   Int? @map("actual_time") // in minutes
+  categoryId  String? @map("category_id")
+  userId      String @map("user_id")
+  parentId    String? @map("parent_id")
+  responsibleParty String? @map("responsible_party")
   tags        String[] // JSON array of tags
-  isRecurring Boolean  @default(false)
-  recurrenceRule String? // RRULE format
-  nextOccurrence DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  completedAt DateTime?
+  isRecurring Boolean  @default(false) @map("is_recurring")
+  recurrenceRule String? @map("recurrence_rule") // RRULE format
+  nextOccurrence DateTime? @map("next_occurrence")
+  successCriteria String? @map("success_criteria") // What "done" looks like
+  context     String? // Additional context and next steps
+  aiSuggestions Json? @map("ai_suggestions") // AI-generated suggestions and subtasks
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  completedAt DateTime? @map("completed_at")
 
   // Relations
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -76,15 +133,16 @@ model Task {
   communications Communication[]
   timeBlocks  TimeBlock[]
   notifications Notification[]
+  creationSteps TaskCreationStep[]
 
   @@map("tasks")
 }
 
 model TaskDependency {
-  id           String @id @default(cuid())
-  dependentId  String
-  dependencyId String
-  createdAt    DateTime @default(now())
+  id           String @id @default(uuid())
+  dependentId  String @map("dependent_id")
+  dependencyId String @map("dependency_id")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   // Relations
   dependent  Task @relation("DependentTask", fields: [dependentId], references: [id], onDelete: Cascade)
@@ -95,13 +153,13 @@ model TaskDependency {
 }
 
 model TimeBlock {
-  id          String   @id @default(cuid())
-  taskId      String
-  startTime   DateTime
-  endTime     DateTime
+  id          String   @id @default(uuid())
+  taskId      String @map("task_id")
+  startTime   DateTime @map("start_time")
+  endTime     DateTime @map("end_time")
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
@@ -110,14 +168,14 @@ model TimeBlock {
 }
 
 model Attachment {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   filename  String
   filepath  String
   filesize  Int
   mimetype  String
-  taskId    String?
-  userId    String
-  createdAt DateTime @default(now())
+  taskId    String? @map("task_id")
+  userId    String @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
   task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
@@ -127,16 +185,16 @@ model Attachment {
 }
 
 model Communication {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   type      CommunicationType
   subject   String?
   content   String
-  fromEmail String?
-  toEmail   String?
-  messageId String? // For email threading
-  taskId    String?
-  userId    String
-  createdAt DateTime @default(now())
+  fromEmail String? @map("from_email")
+  toEmail   String? @map("to_email")
+  messageId String? @map("message_id") // For email threading
+  taskId    String? @map("task_id")
+  userId    String @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
   task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
@@ -146,14 +204,14 @@ model Communication {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   type      NotificationType
   title     String
   message   String
-  isRead    Boolean  @default(false)
-  userId    String
-  taskId    String?
-  createdAt DateTime @default(now())
+  isRead    Boolean  @default(false) @map("is_read")
+  userId    String @map("user_id")
+  taskId    String? @map("task_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
   user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -167,6 +225,8 @@ enum TaskStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+
+  @@map("task_status")
 }
 
 enum Priority {
@@ -174,12 +234,16 @@ enum Priority {
   MEDIUM
   HIGH
   URGENT
+
+  @@map("priority")
 }
 
 enum CommunicationType {
   EMAIL
   NOTE
   COMMENT
+
+  @@map("communication_type")
 }
 
 enum NotificationType {
@@ -187,4 +251,6 @@ enum NotificationType {
   DEPENDENCY
   OVERDUE
   REMINDER
+
+  @@map("notification_type")
 }
