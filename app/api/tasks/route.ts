@@ -150,11 +150,11 @@ export async function POST(request: NextRequest) {
         isRecurring: isRecurring || false,
         recurrenceRule,
         nextOccurrence: isRecurring && recurrenceRule ? new Date() : null,
-        successCriteria,
-        aiSuggestions: {
+        ...(successCriteria && { successCriteria }),
+        aiSuggestions: aiSuggestions ? {
           ...aiSuggestions,
-          selectedSuggestions
-        },
+          ...(selectedSuggestions && { selectedSuggestions })
+        } : undefined,
         userId: dbUser.id,
         subtasks: subtasks ? {
           create: subtasks.map((subtask: any) => ({

@@ -51,6 +51,10 @@ export default function ArchivePage() {
 
   const fetchArchivedTasks = async () => {
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -109,12 +113,16 @@ export default function ArchivePage() {
   })
 
   const getUniqueCategories = () => {
-    const categories = tasks.map(task => task.category?.name).filter(Boolean)
-    return [...new Set(categories)]
+    const categories = tasks.map(task => task.category?.name).filter(Boolean) as string[]
+    return Array.from(new Set(categories))
   }
 
   const restoreTask = async (taskId: string) => {
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -139,6 +147,10 @@ export default function ArchivePage() {
     if (!confirm('Are you sure you want to permanently delete this task?')) return
 
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 

@@ -63,6 +63,10 @@ export default function CategoriesPage() {
 
   const fetchCategories = async () => {
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -83,6 +87,10 @@ export default function CategoriesPage() {
 
   const fetchTasks = async () => {
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 

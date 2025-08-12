@@ -52,6 +52,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!supabase) {
+      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+    }
+
     const body = await request.json()
     const { name, color, description, schedules } = body
 

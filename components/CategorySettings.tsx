@@ -71,6 +71,10 @@ export default function CategorySettings() {
 
   const fetchCategories = async () => {
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -94,6 +98,10 @@ export default function CategorySettings() {
 
     setLoading(true)
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -123,6 +131,10 @@ export default function CategorySettings() {
 
     setLoading(true)
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -152,6 +164,10 @@ export default function CategorySettings() {
 
     setLoading(true)
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 

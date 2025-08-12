@@ -9,6 +9,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    if (!supabase) {
+      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+    }
+
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -58,6 +62,10 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    if (!supabase) {
+      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+    }
+
     const body = await request.json()
     const { name, color, description, schedules } = body
 
@@ -134,6 +142,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    if (!supabase) {
+      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+    }
+
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

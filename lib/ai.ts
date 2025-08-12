@@ -182,6 +182,11 @@ export interface TaskReviewResult {
     conflictType: 'busy' | 'vacation' | 'meeting'
     description: string
   }>
+  toolsAndSupplies?: {
+    tools: string[]
+    materials: string[]
+    safety: string[]
+  }
 }
 
 export interface TaskCreationData {

@@ -31,6 +31,11 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const getUser = async () => {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        router.push('/auth/signin')
+        return
+      }
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/signin')
@@ -40,6 +45,11 @@ export default function DashboardLayout({
     }
 
     getUser()
+
+    if (!supabase) {
+      console.error('Supabase not configured')
+      return
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -55,6 +65,10 @@ export default function DashboardLayout({
   }, [router])
 
   const handleSignOut = async () => {
+    if (!supabase) {
+      console.error('Supabase not configured')
+      return
+    }
     await supabase.auth.signOut()
   }
 

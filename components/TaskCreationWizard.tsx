@@ -43,6 +43,7 @@ interface TaskCreationStep {
 }
 
 interface TaskReviewResult {
+  suggestedProjectName?: string
   suggestions: string[]
   clarifyingQuestions: string[]
   estimatedDuration: number
@@ -61,6 +62,11 @@ interface TaskReviewResult {
     conflictType: 'busy' | 'vacation' | 'meeting'
     description: string
   }>
+  toolsAndSupplies?: {
+    tools: string[]
+    materials: string[]
+    safety: string[]
+  }
 }
 
 export default function TaskCreationWizard({ 
@@ -111,6 +117,10 @@ export default function TaskCreationWizard({
 
   const fetchCategories = async () => {
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -164,6 +174,10 @@ export default function TaskCreationWizard({
   const generateContextQuestions = async () => {
     setLoading(true)
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -206,6 +220,10 @@ export default function TaskCreationWizard({
   const generateAIReview = async () => {
     setLoading(true)
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -247,6 +265,10 @@ export default function TaskCreationWizard({
   const generateFinalAIReview = async () => {
     setLoading(true)
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -287,6 +309,10 @@ export default function TaskCreationWizard({
   const createTask = async () => {
     setLoading(true)
     try {
+      if (!supabase) {
+        console.error('Supabase not configured')
+        return
+      }
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
@@ -623,7 +649,7 @@ export default function TaskCreationWizard({
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={handlePrevious}
+              onClick={handleBack}
               disabled={currentStep === 0}
             >
               <ArrowLeft className="h-4 w-4 mr-1" />

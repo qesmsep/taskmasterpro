@@ -67,6 +67,10 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    if (!supabase) {
+      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+    }
+
     const body = await request.json()
     const { title, description, dueDate, priority, status, categoryId, parentId, responsibleParty, tags, estimatedTime, actualTime, isRecurring, recurrenceRule } = body
 
@@ -178,6 +182,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    if (!supabase) {
+      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+    }
+
     // Get user from auth
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
