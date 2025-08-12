@@ -16,7 +16,8 @@ import {
   ArrowLeft,
   AlertTriangle,
   Calendar as CalendarIcon,
-  Settings
+  Settings,
+  Wrench
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
@@ -616,46 +617,71 @@ export default function TaskCreationWizard({
             </CardContent>
           </Card>
           
-          {/* Question navigation dots */}
-          <div className="flex justify-center gap-2 mb-4">
-            {contextQuestions.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentQuestionIndex(index)}
-                className={`w-3 h-3 rounded-full transition-colors ${
-                  index === currentQuestionIndex 
-                    ? 'bg-apple-blue' 
-                    : index < Object.keys(contextAnswers).length 
-                      ? 'bg-apple-green' 
-                      : 'bg-apple-gray-300'
-                }`}
-                title={`Question ${index + 1}`}
-              />
-            ))}
-          </div>
-          
-          {/* Question navigation buttons */}
-          <div className="flex justify-between">
+                  {/* Main navigation and question navigation */}
+        <div className="flex justify-between items-center mb-6">
+          {/* Main navigation buttons */}
+          <div className="flex gap-2">
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCurrentQuestionIndex(prev => Math.max(prev - 1, 0))}
-              disabled={currentQuestionIndex === 0}
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={currentStep === 0}
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               Previous
             </Button>
-            
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCurrentQuestionIndex(prev => Math.min(prev + 1, contextQuestions.length - 1))}
-              disabled={currentQuestionIndex === contextQuestions.length - 1}
+              onClick={handleNext}
+              disabled={!canProceed()}
             >
               Next
               <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
+
+          {/* Question navigation */}
+          <div className="flex items-center gap-4">
+            {/* Question navigation dots */}
+            <div className="flex gap-2">
+              {contextQuestions.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentQuestionIndex(index)}
+                  className={`w-3 h-3 rounded-full transition-colors ${
+                    index === currentQuestionIndex
+                      ? 'bg-apple-blue'
+                      : index < Object.keys(contextAnswers).length
+                        ? 'bg-apple-green'
+                        : 'bg-apple-gray-300'
+                  }`}
+                  title={`Question ${index + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Question navigation buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentQuestionIndex(prev => Math.max(prev - 1, 0))}
+                disabled={currentQuestionIndex === 0}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentQuestionIndex(prev => Math.min(prev + 1, contextQuestions.length - 1))}
+                disabled={currentQuestionIndex === contextQuestions.length - 1}
+              >
+                Next
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </div>
         </div>
       ) : (
         <div className="text-center py-8">
@@ -699,29 +725,86 @@ export default function TaskCreationWizard({
       ) : aiReview ? (
         <div className="space-y-6">
           {/* Project Name Suggestion */}
-          {aiReview.suggestedProjectName && (
-            <Card className="border-apple-blue/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-apple-blue">
-                  <Brain className="h-5 w-5" />
-                  Suggested Project Name
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <p className="text-sm text-apple-gray-600">
-                    Based on your project details, I suggest this name:
-                  </p>
-                  <div className="bg-apple-blue/5 rounded-lg p-3">
-                    <p className="font-medium text-apple-blue">{aiReview.suggestedProjectName}</p>
-                  </div>
-                  <p className="text-xs text-apple-gray-500">
-                    You can edit this name in the project details if needed.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                                  {aiReview.suggestedProjectName && (
+                          <Card className="border-apple-blue/20">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2 text-apple-blue">
+                                <Brain className="h-5 w-5" />
+                                Suggested Project Name
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-3">
+                                <p className="text-sm text-apple-gray-600">
+                                  Based on your project details, I suggest this name:
+                                </p>
+                                <div className="bg-apple-blue/5 rounded-lg p-3">
+                                  <p className="font-medium text-apple-blue">{aiReview.suggestedProjectName}</p>
+                                </div>
+                                <p className="text-xs text-apple-gray-500">
+                                  You can edit this name in the project details if needed.
+                                </p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Tools and Supplies */}
+                        {aiReview.toolsAndSupplies && (
+                          <Card className="border-apple-green/20">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2 text-apple-green">
+                                <Wrench className="h-5 w-5" />
+                                Tools & Supplies Needed
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                {aiReview.toolsAndSupplies.tools && aiReview.toolsAndSupplies.tools.length > 0 && (
+                                  <div>
+                                    <h4 className="font-medium text-apple-gray-900 mb-2">Tools</h4>
+                                    <ul className="space-y-1">
+                                      {aiReview.toolsAndSupplies.tools.map((tool: string, index: number) => (
+                                        <li key={index} className="flex items-center gap-2 text-sm">
+                                          <div className="w-2 h-2 bg-apple-green rounded-full"></div>
+                                          {tool}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                
+                                {aiReview.toolsAndSupplies.materials && aiReview.toolsAndSupplies.materials.length > 0 && (
+                                  <div>
+                                    <h4 className="font-medium text-apple-gray-900 mb-2">Materials</h4>
+                                    <ul className="space-y-1">
+                                      {aiReview.toolsAndSupplies.materials.map((material: string, index: number) => (
+                                        <li key={index} className="flex items-center gap-2 text-sm">
+                                          <div className="w-2 h-2 bg-apple-blue rounded-full"></div>
+                                          {material}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                
+                                {aiReview.toolsAndSupplies.safety && aiReview.toolsAndSupplies.safety.length > 0 && (
+                                  <div>
+                                    <h4 className="font-medium text-apple-gray-900 mb-2">Safety Equipment</h4>
+                                    <ul className="space-y-1">
+                                      {aiReview.toolsAndSupplies.safety.map((item: string, index: number) => (
+                                        <li key={index} className="flex items-center gap-2 text-sm">
+                                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                          {item}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
 
           {/* Clarifying Questions */}
           {aiReview.clarifyingQuestions && aiReview.clarifyingQuestions.length > 0 && (

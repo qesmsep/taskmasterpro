@@ -213,13 +213,15 @@ Project Information:
 - Category: ${taskData.category || 'Not specified'}
 - Success Criteria: ${taskData.successCriteria || 'Not specified'}
 
+IMPORTANT: Start with questions about the user's skills, experience level, and capabilities, then move to project definition.
+
 Generate proactive questions that suggest solutions rather than just asking for information:
-1. "Here's what I think the main goal should be - [suggested goal]. Does this match what you're trying to achieve?"
-2. "Based on this type of project, I suggest these steps: [list 3-4 key steps]. Would you like to adjust any of these?"
-3. "I recommend these tools/resources: [suggest specific tools]. Do you have access to these or need alternatives?"
-4. "Who should be involved? I suggest: [list stakeholders]. Are there others I'm missing?"
-5. "Potential challenges I see: [list 2-3 challenges]. How can we address these?"
-6. "Success metrics I suggest: [list specific metrics]. Do these align with your expectations?"
+1. "What's your experience level with [project type]? I'm thinking [beginner/intermediate/expert] based on the project scope."
+2. "Here's what I think the main goal should be - [suggested goal]. Does this match what you're trying to achieve?"
+3. "Based on this type of project, I suggest these steps: [list 3-4 key steps]. Would you like to adjust any of these?"
+4. "I recommend these tools/resources: [suggest specific tools]. Do you have access to these or need alternatives?"
+5. "Who should be involved? I suggest: [list stakeholders]. Are there others I'm missing?"
+6. "Potential challenges I see: [list 2-3 challenges]. How can we address these?"
 
 Write questions in simple language that a high school student could understand. Be proactive and helpful.
 
@@ -299,7 +301,12 @@ For tasks, consider:
 Format your response as JSON:
 {
   "suggestedProjectName": "A descriptive, professional project name",
-  "suggestions": ["suggestion1", "suggestion2"],
+  "suggestions": [
+    {
+      "suggestion": "I'd suggest you determine the specific type of chair using photos or inspiration",
+      "category": "scope|resources|approach|timeline|quality"
+    }
+  ],
   "clarifyingQuestions": [
     "What specific deliverables are expected?",
     "Who are the key stakeholders and what are their requirements?",
@@ -321,6 +328,11 @@ Format your response as JSON:
       "dependencies": ["other task"]
     }
   ],
+  "toolsAndSupplies": {
+    "tools": ["Tool 1", "Tool 2"],
+    "materials": ["Material 1", "Material 2"],
+    "safety": ["Safety item 1", "Safety item 2"]
+  },
   "potentialRisks": ["risk1", "risk2"],
   "calendarConflicts": [
     {
@@ -588,6 +600,62 @@ Format as JSON:
   } catch (error) {
     console.error('Error analyzing project intelligence:', error)
     throw error
+  }
+}
+
+export async function getTaskAssistance(
+  taskTitle: string,
+  taskDescription: string,
+  userQuery: string,
+  projectContext: string
+): Promise<{
+  suggestions: string[]
+  nextSteps: string[]
+  resources: string[]
+  warnings: string[]
+}> {
+  const prompt = `
+You are an AI assistant helping a user complete a specific task within a project.
+
+Task: ${taskTitle}
+Description: ${taskDescription}
+Project Context: ${projectContext}
+User Query: ${userQuery}
+
+Provide helpful assistance including:
+1. Specific suggestions for completing this task
+2. Next steps to take
+3. Useful resources or tools
+4. Potential warnings or things to watch out for
+
+Format your response as JSON:
+{
+  "suggestions": ["suggestion1", "suggestion2"],
+  "nextSteps": ["step1", "step2"],
+  "resources": ["resource1", "resource2"],
+  "warnings": ["warning1", "warning2"]
+}
+`
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+    })
+
+    const response = completion.choices[0]?.message?.content
+    if (!response) throw new Error('No response from AI')
+
+    return JSON.parse(response)
+  } catch (error) {
+    console.error('Error getting task assistance:', error)
+    return {
+      suggestions: [],
+      nextSteps: [],
+      resources: [],
+      warnings: []
+    }
   }
 }
 

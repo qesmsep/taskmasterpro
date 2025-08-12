@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -15,7 +18,9 @@ import {
   ArrowRight,
   Play,
   Pause,
-  Square
+  Square,
+  Brain,
+  MessageSquare
 } from 'lucide-react'
 
 interface Task {
@@ -61,6 +66,11 @@ export default function ProjectHierarchy({
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set())
   const [selectedTask, setSelectedTask] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'hierarchy' | 'timeline' | 'kanban'>('hierarchy')
+  const [assistanceDialogOpen, setAssistanceDialogOpen] = useState(false)
+  const [selectedTaskForAssistance, setSelectedTaskForAssistance] = useState<Task | null>(null)
+  const [userQuery, setUserQuery] = useState('')
+  const [assistance, setAssistance] = useState<any>(null)
+  const [loadingAssistance, setLoadingAssistance] = useState(false)
 
   const toggleTaskExpansion = (taskId: string) => {
     const newExpanded = new Set(expandedTasks)
@@ -133,6 +143,46 @@ export default function ProjectHierarchy({
     return total > 0 ? Math.round((completed / total) * 100) : 0
   }
 
+  const openTaskAssistance = (task: Task) => {
+    setSelectedTaskForAssistance(task)
+    setUserQuery('')
+    setAssistance(null)
+    setAssistanceDialogOpen(true)
+  }
+
+  const getTaskAssistance = async () => {
+    if (!selectedTaskForAssistance || !userQuery.trim()) return
+
+    setLoadingAssistance(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const response = await fetch('/api/ai/task-assistance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          taskTitle: selectedTaskForAssistance.title,
+          taskDescription: selectedTaskForAssistance.description || '',
+          userQuery: userQuery,
+          projectContext: `Project with ${tasks.length} main tasks`
+        })
+      })
+
+      if (response.ok) {
+        const assistanceData = await response.json()
+        setAssistance(assistanceData)
+      }
+    } catch (error) {
+      console.error('Error getting task assistance:', error)
+    } finally {
+      setLoadingAssistance(false)
+    }
+  }
+
   const renderTaskCard = (task: Task, level: number = 0) => {
     const isExpanded = expandedTasks.has(task.id)
     const hasSubtasks = task.subtasks && task.subtasks.length > 0
@@ -142,17 +192,39 @@ export default function ProjectHierarchy({
     const taskWithLevel = { ...task, level }
 
     return (
-      <div key={task.id} className="space-y-2">
-        <Card className={`transition-all duration-200 hover:shadow-md ${
-          selectedTask === task.id ? 'ring-2 ring-apple-blue' : ''
-        } ${task.status === 'COMPLETED' ? 'bg-apple-gray-50' : ''} ${
-          level > 0 ? 'border-l-4' : ''
-        }`} style={{
-          borderLeftColor: level === 1 ? '#007AFF' : level === 2 ? '#34C759' : level === 3 ? '#FF9500' : 'transparent',
-          marginLeft: `${level * 16}px`
-        }}>
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
+      <div key={task.id} className="space-y-1">
+        <div className="flex items-start gap-2" style={{ marginLeft: `${level * 24}px` }}>
+          {/* Bullet point and expand/collapse */}
+          <div className="flex items-center gap-2 mt-4">
+            {hasSubtasks ? (
+              <button
+                onClick={() => toggleTaskExpansion(task.id)}
+                className="p-1 hover:bg-apple-gray-100 rounded transition-colors"
+              >
+                <ChevronRight 
+                  className={`h-4 w-4 transition-transform ${
+                    isExpanded ? 'rotate-90' : ''
+                  }`} 
+                />
+              </button>
+            ) : (
+              <div className="w-6 h-4 flex items-center justify-center">
+                <div className="w-1 h-1 bg-apple-gray-400 rounded-full"></div>
+              </div>
+            )}
+            
+            {/* Bullet point */}
+            <div className="w-2 h-2 rounded-full" style={{
+              backgroundColor: level === 0 ? '#007AFF' : level === 1 ? '#34C759' : level === 2 ? '#FF9500' : '#FF3B30'
+            }}></div>
+          </div>
+
+          {/* Task content */}
+          <Card className={`flex-1 transition-all duration-200 hover:shadow-md ${
+            selectedTask === task.id ? 'ring-2 ring-apple-blue' : ''
+          } ${task.status === 'COMPLETED' ? 'bg-apple-gray-50' : ''}`}>
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
               {/* Expand/Collapse Button */}
               {hasSubtasks && (
                 <button
@@ -182,29 +254,16 @@ export default function ProjectHierarchy({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      {level > 0 && (
-                        <div className="flex items-center gap-1">
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: level }, (_, i) => (
-                              <div
-                                key={i}
-                                className="w-1 h-1 rounded-full"
-                                style={{
-                                  backgroundColor: i === 0 ? '#007AFF' : i === 1 ? '#34C759' : '#FF9500'
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-xs text-apple-gray-500 font-medium">
-                            Level {level}
-                          </span>
-                        </div>
-                      )}
                       <h3 className={`font-medium truncate ${
                         task.status === 'COMPLETED' ? 'line-through text-apple-gray-500' : 'text-apple-gray-900'
                       }`}>
                         {task.title}
                       </h3>
+                      {level > 0 && (
+                        <span className="text-xs text-apple-gray-500 font-medium px-2 py-1 bg-apple-gray-100 rounded">
+                          Level {level}
+                        </span>
+                      )}
                     </div>
                     
                     {task.description && (
@@ -300,6 +359,16 @@ export default function ProjectHierarchy({
                         Pause
                       </Button>
                     )}
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openTaskAssistance(task)}
+                      className="h-8 px-3"
+                    >
+                      <Brain className="h-4 w-4 mr-1" />
+                      AI Help
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -309,7 +378,7 @@ export default function ProjectHierarchy({
 
         {/* Subtasks */}
         {hasSubtasks && isExpanded && (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {task.subtasks!.map(subtask => renderTaskCard(subtask, level + 1))}
           </div>
         )}
@@ -450,6 +519,126 @@ export default function ProjectHierarchy({
       {viewMode === 'timeline' && renderTimelineView()}
 
       {viewMode === 'kanban' && renderKanbanView()}
+
+      {/* Task Assistance Dialog */}
+      <Dialog open={assistanceDialogOpen} onOpenChange={setAssistanceDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              AI Task Assistance
+            </DialogTitle>
+            <DialogDescription>
+              Get help with: {selectedTaskForAssistance?.title}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Task Info */}
+            <div className="bg-apple-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-2">Task Details</h4>
+              <p className="text-sm text-apple-gray-600">{selectedTaskForAssistance?.description || 'No description'}</p>
+            </div>
+
+            {/* User Query */}
+            <div>
+              <label className="block text-sm font-medium mb-2">What do you need help with?</label>
+              <Textarea
+                value={userQuery}
+                onChange={(e) => setUserQuery(e.target.value)}
+                placeholder="Describe what you're stuck on or need help with..."
+                rows={3}
+              />
+            </div>
+
+            {/* Get Assistance Button */}
+            <Button
+              onClick={getTaskAssistance}
+              disabled={!userQuery.trim() || loadingAssistance}
+              className="w-full"
+            >
+              {loadingAssistance ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Getting AI Assistance...
+                </>
+              ) : (
+                <>
+                  <Brain className="h-4 w-4 mr-2" />
+                  Get AI Assistance
+                </>
+              )}
+            </Button>
+
+            {/* AI Response */}
+            {assistance && (
+              <div className="space-y-4">
+                {assistance.suggestions && assistance.suggestions.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Suggestions
+                    </h4>
+                    <ul className="space-y-2">
+                      {assistance.suggestions.map((suggestion: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2 text-sm">
+                          <div className="w-2 h-2 bg-apple-blue rounded-full mt-2 flex-shrink-0"></div>
+                          {suggestion}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {assistance.nextSteps && assistance.nextSteps.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Next Steps</h4>
+                    <ul className="space-y-2">
+                      {assistance.nextSteps.map((step: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2 text-sm">
+                          <div className="w-2 h-2 bg-apple-green rounded-full mt-2 flex-shrink-0"></div>
+                          {step}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {assistance.resources && assistance.resources.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Resources</h4>
+                    <ul className="space-y-2">
+                      {assistance.resources.map((resource: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2 text-sm">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                          {resource}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {assistance.warnings && assistance.warnings.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2 text-orange-600 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Warnings
+                    </h4>
+                    <ul className="space-y-2">
+                      {assistance.warnings.map((warning: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2 text-sm text-orange-700">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                          {warning}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
