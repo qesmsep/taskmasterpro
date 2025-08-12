@@ -17,7 +17,23 @@ export async function GET(
         subtasks: {
           include: {
             category: true,
-          },
+            dependencies: true,
+            dependents: true,
+            subtasks: {
+              include: {
+                category: true,
+                dependencies: true,
+                dependents: true,
+                subtasks: {
+                  include: {
+                    category: true,
+                    dependencies: true,
+                    dependents: true
+                  }
+                }
+              }
+            }
+          }
         },
         dependencies: {
           include: {
@@ -116,7 +132,23 @@ export async function PUT(
         subtasks: {
           include: {
             category: true,
-          },
+            dependencies: true,
+            dependents: true,
+            subtasks: {
+              include: {
+                category: true,
+                dependencies: true,
+                dependents: true,
+                subtasks: {
+                  include: {
+                    category: true,
+                    dependencies: true,
+                    dependents: true
+                  }
+                }
+              }
+            }
+          }
         },
         dependencies: {
           include: {

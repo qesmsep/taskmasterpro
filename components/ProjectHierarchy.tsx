@@ -38,6 +38,7 @@ interface Task {
   suggestedEndDate?: string
   isBlocked?: boolean
   blockingReason?: string
+  level?: number // Track nesting level
 }
 
 interface ProjectHierarchyProps {
@@ -107,16 +108,49 @@ export default function ProjectHierarchy({
     })
   }
 
+  const getCompletionRate = (tasks: Task[]) => {
+    const calculateNestedCompletion = (taskList: Task[]): { total: number; completed: number } => {
+      let total = 0
+      let completed = 0
+      
+      for (const task of taskList) {
+        total++
+        if (task.status === 'COMPLETED') {
+          completed++
+        }
+        
+        if (task.subtasks && task.subtasks.length > 0) {
+          const nested = calculateNestedCompletion(task.subtasks)
+          total += nested.total
+          completed += nested.completed
+        }
+      }
+      
+      return { total, completed }
+    }
+    
+    const { total, completed } = calculateNestedCompletion(tasks)
+    return total > 0 ? Math.round((completed / total) * 100) : 0
+  }
+
   const renderTaskCard = (task: Task, level: number = 0) => {
     const isExpanded = expandedTasks.has(task.id)
     const hasSubtasks = task.subtasks && task.subtasks.length > 0
     const isBlocked = task.isBlocked || (task.dependencies && task.dependencies.length > 0)
+    
+    // Set the level for this task
+    const taskWithLevel = { ...task, level }
 
     return (
       <div key={task.id} className="space-y-2">
         <Card className={`transition-all duration-200 hover:shadow-md ${
           selectedTask === task.id ? 'ring-2 ring-apple-blue' : ''
-        } ${task.status === 'COMPLETED' ? 'bg-apple-gray-50' : ''}`}>
+        } ${task.status === 'COMPLETED' ? 'bg-apple-gray-50' : ''} ${
+          level > 0 ? 'border-l-4' : ''
+        }`} style={{
+          borderLeftColor: level === 1 ? '#007AFF' : level === 2 ? '#34C759' : level === 3 ? '#FF9500' : 'transparent',
+          marginLeft: `${level * 16}px`
+        }}>
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               {/* Expand/Collapse Button */}
@@ -147,11 +181,31 @@ export default function ProjectHierarchy({
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <h3 className={`font-medium truncate ${
-                      task.status === 'COMPLETED' ? 'line-through text-apple-gray-500' : 'text-apple-gray-900'
-                    }`}>
-                      {task.title}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      {level > 0 && (
+                        <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: level }, (_, i) => (
+                              <div
+                                key={i}
+                                className="w-1 h-1 rounded-full"
+                                style={{
+                                  backgroundColor: i === 0 ? '#007AFF' : i === 1 ? '#34C759' : '#FF9500'
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-apple-gray-500 font-medium">
+                            Level {level}
+                          </span>
+                        </div>
+                      )}
+                      <h3 className={`font-medium truncate ${
+                        task.status === 'COMPLETED' ? 'line-through text-apple-gray-500' : 'text-apple-gray-900'
+                      }`}>
+                        {task.title}
+                      </h3>
+                    </div>
                     
                     {task.description && (
                       <p className="text-sm text-apple-gray-600 mt-1 line-clamp-2">
@@ -255,7 +309,7 @@ export default function ProjectHierarchy({
 
         {/* Subtasks */}
         {hasSubtasks && isExpanded && (
-          <div className="ml-6 space-y-2">
+          <div className="space-y-2">
             {task.subtasks!.map(subtask => renderTaskCard(subtask, level + 1))}
           </div>
         )}
@@ -357,7 +411,32 @@ export default function ProjectHierarchy({
         </div>
 
         <div className="text-sm text-apple-gray-600">
-          {tasks.filter(t => t.status === 'COMPLETED').length} of {tasks.length} tasks completed
+          {(() => {
+            const { total, completed } = (() => {
+              const calculateNestedCompletion = (taskList: Task[]): { total: number; completed: number } => {
+                let total = 0
+                let completed = 0
+                
+                for (const task of taskList) {
+                  total++
+                  if (task.status === 'COMPLETED') {
+                    completed++
+                  }
+                  
+                  if (task.subtasks && task.subtasks.length > 0) {
+                    const nested = calculateNestedCompletion(task.subtasks)
+                    total += nested.total
+                    completed += nested.completed
+                  }
+                }
+                
+                return { total, completed }
+              }
+              
+              return calculateNestedCompletion(tasks)
+            })()
+            return `${completed} of ${total} tasks completed`
+          })()}
         </div>
       </div>
 

@@ -193,8 +193,31 @@ export default function ProjectDetailPage() {
     )
   }
 
-  const completedTasks = project.subtasks.filter(t => t.status === 'COMPLETED').length
-  const totalTasks = project.subtasks.length
+  const getNestedCompletionStats = (tasks: Task[]) => {
+    const calculateNestedCompletion = (taskList: Task[]): { total: number; completed: number } => {
+      let total = 0
+      let completed = 0
+      
+      for (const task of taskList) {
+        total++
+        if (task.status === 'COMPLETED') {
+          completed++
+        }
+        
+        if (task.subtasks && task.subtasks.length > 0) {
+          const nested = calculateNestedCompletion(task.subtasks)
+          total += nested.total
+          completed += nested.completed
+        }
+      }
+      
+      return { total, completed }
+    }
+    
+    return calculateNestedCompletion(tasks)
+  }
+
+  const { total: totalTasks, completed: completedTasks } = getNestedCompletionStats(project.subtasks)
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
   return (
@@ -268,7 +291,21 @@ export default function ProjectDetailPage() {
                   </div>
                   <div className="text-center">
                     <p className="text-2xl font-bold text-orange-500">
-                      {project.subtasks.filter(t => t.status === 'IN_PROGRESS').length}
+                      {(() => {
+                        const countInProgress = (tasks: Task[]): number => {
+                          let count = 0
+                          for (const task of tasks) {
+                            if (task.status === 'IN_PROGRESS') {
+                              count++
+                            }
+                            if (task.subtasks && task.subtasks.length > 0) {
+                              count += countInProgress(task.subtasks)
+                            }
+                          }
+                          return count
+                        }
+                        return countInProgress(project.subtasks)
+                      })()}
                     </p>
                     <p className="text-sm text-apple-gray-600">In Progress</p>
                   </div>
@@ -440,14 +477,70 @@ export default function ProjectDetailPage() {
         )}
 
         {activeTab === 'tasks' && (
-          <ProjectHierarchy
-            projectId={project.id}
-            tasks={project.subtasks}
-            onTaskUpdate={handleTaskUpdate}
-            onTaskStart={handleTaskStart}
-            onTaskPause={handleTaskPause}
-            onTaskComplete={handleTaskComplete}
-          />
+          <div className="space-y-6">
+            {/* Hierarchy Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Task Hierarchy Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {(() => {
+                    const getLevelStats = (tasks: Task[]) => {
+                      const stats = { level1: 0, level2: 0, level3: 0 }
+                      
+                      const countLevels = (taskList: Task[], currentLevel: number) => {
+                        for (const task of taskList) {
+                          if (currentLevel === 1) stats.level1++
+                          else if (currentLevel === 2) stats.level2++
+                          else if (currentLevel === 3) stats.level3++
+                          
+                          if (task.subtasks && task.subtasks.length > 0 && currentLevel < 3) {
+                            countLevels(task.subtasks, currentLevel + 1)
+                          }
+                        }
+                      }
+                      
+                      countLevels(tasks, 1)
+                      return stats
+                    }
+                    
+                    const levelStats = getLevelStats(project.subtasks)
+                    
+                    return (
+                      <>
+                        <div className="text-center p-4 bg-blue-50 rounded-lg">
+                          <p className="text-2xl font-bold text-blue-600">{levelStats.level1}</p>
+                          <p className="text-sm text-blue-700">Level 1 Tasks</p>
+                          <p className="text-xs text-blue-600">Main project tasks</p>
+                        </div>
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                          <p className="text-2xl font-bold text-green-600">{levelStats.level2}</p>
+                          <p className="text-sm text-green-700">Level 2 Tasks</p>
+                          <p className="text-xs text-green-600">Sub-tasks</p>
+                        </div>
+                        <div className="text-center p-4 bg-orange-50 rounded-lg">
+                          <p className="text-2xl font-bold text-orange-600">{levelStats.level3}</p>
+                          <p className="text-sm text-orange-700">Level 3 Tasks</p>
+                          <p className="text-xs text-orange-600">Detailed steps</p>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Task Hierarchy */}
+            <ProjectHierarchy
+              projectId={project.id}
+              tasks={project.subtasks}
+              onTaskUpdate={handleTaskUpdate}
+              onTaskStart={handleTaskStart}
+              onTaskPause={handleTaskPause}
+              onTaskComplete={handleTaskComplete}
+            />
+          </div>
         )}
 
         {activeTab === 'analytics' && (
