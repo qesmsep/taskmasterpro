@@ -43,7 +43,7 @@ interface Task {
   suggestedEndDate?: string
   isBlocked?: boolean
   blockingReason?: string
-  level?: number // Track nesting level
+  level?: number
 }
 
 interface ProjectHierarchyProps {
@@ -187,9 +187,6 @@ export default function ProjectHierarchy({
     const isExpanded = expandedTasks.has(task.id)
     const hasSubtasks = task.subtasks && task.subtasks.length > 0
     const isBlocked = task.isBlocked || (task.dependencies && task.dependencies.length > 0)
-    
-    // Set the level for this task
-    const taskWithLevel = { ...task, level }
 
     return (
       <div key={task.id} className="space-y-1">
@@ -225,156 +222,158 @@ export default function ProjectHierarchy({
           } ${task.status === 'COMPLETED' ? 'bg-apple-gray-50' : ''}`}>
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
-              {/* Expand/Collapse Button */}
-              {hasSubtasks && (
+                {/* Expand/Collapse Button */}
+                {hasSubtasks && (
+                  <button
+                    onClick={() => toggleTaskExpansion(task.id)}
+                    className="flex-shrink-0 mt-1"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-apple-gray-500" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-apple-gray-500" />
+                    )}
+                  </button>
+                )}
+
+                {/* Task Status */}
                 <button
-                  onClick={() => toggleTaskExpansion(task.id)}
+                  onClick={() => onTaskComplete(task.id)}
                   className="flex-shrink-0 mt-1"
                 >
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-apple-gray-500" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-apple-gray-500" />
-                  )}
+                  <CheckCircle 
+                    className={`h-5 w-5 ${getStatusColor(task.status)}`} 
+                  />
                 </button>
-              )}
 
-              {/* Task Status */}
-              <button
-                onClick={() => onTaskComplete(task.id)}
-                className="flex-shrink-0 mt-1"
-              >
-                <CheckCircle 
-                  className={`h-5 w-5 ${getStatusColor(task.status)}`} 
-                />
-              </button>
-
-              {/* Task Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className={`font-medium truncate ${
-                        task.status === 'COMPLETED' ? 'line-through text-apple-gray-500' : 'text-apple-gray-900'
-                      }`}>
-                        {task.title}
-                      </h3>
-                      {level > 0 && (
-                        <span className="text-xs text-apple-gray-500 font-medium px-2 py-1 bg-apple-gray-100 rounded">
-                          Level {level}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {task.description && (
-                      <p className="text-sm text-apple-gray-600 mt-1 line-clamp-2">
-                        {task.description}
-                      </p>
-                    )}
-
-                    {/* Task Metadata */}
-                    <div className="flex items-center gap-4 mt-3 text-sm text-apple-gray-500">
-                      {task.dueDate && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(task.dueDate)}
-                        </div>
-                      )}
-                      
-                      {task.estimatedTime && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {formatTime(task.estimatedTime)}
-                        </div>
-                      )}
-
-                      {task.responsibleParty && (
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          {task.responsibleParty}
-                        </div>
-                      )}
-
-                      {task.category && (
-                        <div className="flex items-center gap-1">
-                          <Tag className="h-4 w-4" />
-                          <span 
-                            className="px-2 py-1 rounded-full text-xs"
-                            style={{ backgroundColor: `${task.category.color}20`, color: task.category.color }}
-                          >
-                            {task.category.name}
+                {/* Task Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className={`font-medium truncate ${
+                          task.status === 'COMPLETED' ? 'line-through text-apple-gray-500' : 'text-apple-gray-900'
+                        }`}>
+                          {task.title}
+                        </h3>
+                        {level > 0 && (
+                          <span className="text-xs text-apple-gray-500 font-medium px-2 py-1 bg-apple-gray-100 rounded">
+                            Level {level}
                           </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* AI Suggestions */}
-                    {task.suggestedStartDate && (
-                      <div className="mt-2 p-2 bg-apple-blue/5 rounded-lg">
-                        <p className="text-xs text-apple-blue font-medium">AI Suggested Schedule</p>
-                        <p className="text-xs text-apple-gray-600">
-                          {formatDate(task.suggestedStartDate)} → {formatDate(task.suggestedEndDate)}
-                        </p>
+                        )}
                       </div>
-                    )}
+                      
+                      {task.description && (
+                        <p className="text-sm text-apple-gray-600 mt-1 line-clamp-2">
+                          {task.description}
+                        </p>
+                      )}
 
-                    {/* Blocking Status */}
-                    {isBlocked && (
-                      <div className="mt-2 p-2 bg-red-50 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-4 w-4 text-red-500" />
-                          <p className="text-xs text-red-700 font-medium">
-                            {task.blockingReason || 'Blocked by dependencies'}
+                      {/* Task Metadata */}
+                      <div className="flex items-center gap-4 mt-3 text-sm text-apple-gray-500">
+                        {task.dueDate && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {formatDate(task.dueDate)}
+                          </div>
+                        )}
+                        
+                        {task.estimatedTime && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {formatTime(task.estimatedTime)}
+                          </div>
+                        )}
+
+                        {task.responsibleParty && (
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            {task.responsibleParty}
+                          </div>
+                        )}
+
+                        {task.category && (
+                          <div className="flex items-center gap-1">
+                            <Tag className="h-4 w-4" />
+                            <span 
+                              className="px-2 py-1 rounded-full text-xs"
+                              style={{ backgroundColor: `${task.category.color}20`, color: task.category.color }}
+                            >
+                              {task.category.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* AI Suggestions */}
+                      {task.suggestedStartDate && (
+                        <div className="mt-2 p-2 bg-apple-blue/5 rounded-lg">
+                          <p className="text-xs text-apple-blue font-medium">AI Suggested Schedule</p>
+                          <p className="text-xs text-apple-gray-600">
+                            {formatDate(task.suggestedStartDate)} - {formatDate(task.suggestedEndDate)}
                           </p>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                      {task.priority}
-                    </span>
-                    
-                    {task.status === 'TODO' && !isBlocked && (
-                      <Button
-                        size="sm"
-                        onClick={() => onTaskStart(task.id)}
-                        className="h-8 px-3"
-                      >
-                        <Play className="h-4 w-4 mr-1" />
-                        Start
-                      </Button>
-                    )}
-                    
-                    {task.status === 'IN_PROGRESS' && (
+                      {/* Blocking Status */}
+                      {isBlocked && (
+                        <div className="mt-2 p-2 bg-orange-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-orange-500" />
+                            <p className="text-xs text-orange-700 font-medium">Blocked</p>
+                          </div>
+                          {task.blockingReason && (
+                            <p className="text-xs text-orange-600 mt-1">{task.blockingReason}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                        {task.priority}
+                      </span>
+                      
+                      {task.status === 'TODO' && !isBlocked && (
+                        <Button
+                          size="sm"
+                          onClick={() => onTaskStart(task.id)}
+                          className="h-8 px-3"
+                        >
+                          <Play className="h-4 w-4 mr-1" />
+                          Start
+                        </Button>
+                      )}
+                      
+                      {task.status === 'IN_PROGRESS' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onTaskPause(task.id)}
+                          className="h-8 px-3"
+                        >
+                          <Pause className="h-4 w-4 mr-1" />
+                          Pause
+                        </Button>
+                      )}
+
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => onTaskPause(task.id)}
+                        onClick={() => openTaskAssistance(task)}
                         className="h-8 px-3"
                       >
-                        <Pause className="h-4 w-4 mr-1" />
-                        Pause
+                        <Brain className="h-4 w-4 mr-1" />
+                        AI Help
                       </Button>
-                    )}
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openTaskAssistance(task)}
-                      className="h-8 px-3"
-                    >
-                      <Brain className="h-4 w-4 mr-1" />
-                      AI Help
-                    </Button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Subtasks */}
         {hasSubtasks && isExpanded && (
@@ -512,7 +511,7 @@ export default function ProjectHierarchy({
       {/* Content */}
       {viewMode === 'hierarchy' && (
         <div className="space-y-4">
-          {tasks.map(task => renderTaskCard(task))}
+          {tasks.map(task => renderTaskCard(task, 0))}
         </div>
       )}
 
